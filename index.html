@@ -1,3 +1,19 @@
+<script>
+// 禁用右鍵
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// 禁用 F12、Ctrl+Shift+I、Ctrl+U
+document.addEventListener('keydown', e => {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+    (e.ctrlKey && e.key === 'U')
+  ) {
+    e.preventDefault();
+  }
+});
+</script>
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
