@@ -1,0 +1,789 @@
+<script>
+// 禁用右鍵
+document.addEventListener('contextmenu', e => e.preventDefault());
+
+// 禁用 F12、Ctrl+Shift+I、Ctrl+U
+document.addEventListener('keydown', e => {
+  if (
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+    (e.ctrlKey && e.key === 'U')
+  ) {
+    e.preventDefault();
+  }
+});
+</script>
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Auristar 遊戲商城 - 完整版</title>
+<style>
+  body {
+    font-family: "微軟正黑體", sans-serif;
+    background: #f5f5f7;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 900px;
+    margin: auto;
+    background: #fff;
+    padding: 20px 30px;
+    border-radius: 6px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+  }
+  h1 {
+    color: #e67e22;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  label {
+    display: block;
+    margin: 14px 0 6px;
+    font-weight: bold;
+    color: #333;
+  }
+  select,
+  input[type="number"] {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    box-sizing: border-box;
+  }
+  button {
+    background: #e67e22;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 10px 22px;
+    font-size: 16px;
+    cursor: pointer;
+    margin-top: 12px;
+    transition: background-color 0.3s ease;
+  }
+  button:hover:not(:disabled) {
+    background: #cf6c19;
+  }
+  button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
+  .hidden {
+    display: none !important;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+  }
+  th,
+  td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: center;
+  }
+  th {
+    background: #f0f0f0;
+  }
+  #paymentInfo {
+    margin-top: 15px;
+    padding: 14px;
+    background: #e8f0fe;
+    border-radius: 5px;
+    color: #0056b3;
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<canvas id="starfield" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;"></canvas>
+<script>
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+let stars = [];
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+for (let i = 0; i < 120; i++) {
+  stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 1.5 });
+}
+function drawStars() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#fff";
+  for (let s of stars) {
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fill();
+    s.y += 0.2;
+    if (s.y > canvas.height) s.y = 0;
+  }
+  requestAnimationFrame(drawStars);
+}
+drawStars();
+</script>
+  <div class="container">
+    <h1>🌟 Auristar 遊戲商城 線上訂購專區</h1>
+
+    <!-- 第1步 類別選擇 -->
+    <label>1️⃣ 選擇類別</label>
+    <select id="category">
+      <option value="">請選擇類別</option>
+      <option value="roblox">Roblox</option>
+      <option value="discord">Discord</option>
+      <option value="social">社群流量服務</option>
+    </select>
+
+    <!-- 第2步 商品類別 -->
+    <div id="step2" class="hidden">
+      <label>2️⃣ 選擇商品類別</label>
+      <select id="subcategory"></select>
+    </div>
+
+    <!-- 第3步 第3層選項 -->
+    <div id="step3" class="hidden">
+      <label>3️⃣ 選擇細分類</label>
+      <select id="tier3"></select>
+    </div>
+
+    <!-- 第4步 第4層商品或自訂金額 -->
+    <div id="step4" class="hidden">
+      <label id="step4Label">4️⃣ 選擇商品</label>
+      <select id="tier4" class="hidden"></select>
+      <div id="customAmountDiv" class="hidden">
+        <input type="number" id="customAmount" min="1" placeholder="請輸入自訂金額" />
+        <p>實付金額：NT$<span id="customPrice">0</span></p>
+      </div>
+    </div>
+
+    <!-- 加入購物車按鈕 -->
+    <button id="addToCart" disabled>加入購物車</button>
+
+    <!-- 購物車區域 -->
+    <div id="cartSection" class="hidden">
+      <h2>🛒 購物車</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>商品名稱</th>
+            <th>價格</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="cartBody"></tbody>
+        <tfoot>
+          <tr>
+            <th>總計</th>
+            <th id="totalPrice">NT$0</th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+      <button id="checkoutBtn">結帳</button>
+    </div>
+
+    <!-- 結帳區域 -->
+    <div id="checkoutSection" class="hidden">
+      <h2>💳 選擇付款方式</h2>
+      <select id="paymentMethod">
+        <option value="">請選擇付款方式</option>
+        <option value="8591">8591</option>
+        <option value="convenience">超商代碼</option>
+        <option value="chinatrust">中信無卡</option>
+      </select>
+      <div id="paymentInfo"></div>
+<div style="margin-top: 15px;">
+  <label>👤 顧客姓名：</label>
+  <input type="text" id="customerName" placeholder="請輸入您的姓名" required>
+  <label>📧 電子郵件：</label>
+  <input type="email" id="customerEmail" placeholder="請輸入您的 Email" required>
+  <div style="margin-top: 10px;">
+    <input type="checkbox" id="agreeTerms" />
+    我已閱讀並同意 <a href="#" target="_blank">服務條款</a>
+  </div>
+</div>
+
+      <button id="sendOrder" disabled>送出訂單</button>
+    </div>
+  </div>
+
+<script>
+(() => {
+  const webhookURL = "https://fancy-wind-f755.jzuo05054.workers.dev/";
+
+  // 商品資料結構
+  const products = {
+    roblox: {
+      subcats: ["帳號", "代儲", "代購"],
+      items: {
+        "帳號": [
+          { name: "bloxfruit隨機 2~8 紅果庫存", price: 120 },
+          { name: "Lv2000+ 含神人拳", price: 80 },
+          { name: "隨機 V4 滿齒", price: 270 },
+          { name: "隨機 V4 滿齒 + 雙刀 + 神人拳 + 靈魂吉他", price: 300 },
+          { name: "Lv2500+ 雙刀 + 神人拳 + 靈魂吉他", price: 200 },
+          { name: "龍族 V4 滿齒 + 雙刀 + 神人拳 + 靈魂吉他", price: 1300 },
+          { name: "兔子 V4 滿齒 + 雙刀 + 神人拳 + 靈魂吉他", price: 400 },
+          { name: "鯊魚 V4 滿齒 + 雙刀 + 神人拳 + 靈魂吉他", price: 400 },
+          { name: "人類 V4 滿齒 + 雙刀 + 神人拳 +靈魂吉他", price: 400 },
+          { name: "天使 V4 滿齒 + 雙刀 +神人拳 +靈魂吉他", price: 400 },
+          { name: "吸血鬼 V4 滿齒 + 雙刀 +神人拳 +靈魂吉他", price: 500 },
+          { name: "機器人 V4 滿齒 + 雙刀 +神人拳 +靈魂吉他", price: 500 }
+        ],
+        "代儲": [
+          { name: "400 Robux", price: 160 },
+          { name: "800 Robux", price: 300 },
+          { name: "1700 Robux", price: 600 },
+          { name: "2500 Robux", price: 900 },
+          { name: "4500 Robux", price: 1450 },
+          { name: "10000 Robux", price: 2800 },
+          { name: "22500 Robux", price: 5600 }
+        ],
+        "代購": {
+          subsubs: ["bloxfruit", "Rivals 競爭者", "Grow a Garden", "遊戲贈禮服務（自訂金額）"],
+          bloxfruit: [
+            { name: "火焰", price: 120 },
+            { name: "獵鷹", price: 210 },
+            { name: "冰凍", price: 150 },
+            { name: "沙子", price: 170 },
+            { name: "黑暗", price: 190 },
+            { name: "鑽石", price: 210 },
+            { name: "閃閃", price: 240 },
+            { name: "橡膠", price: 250 },
+            { name: "創造", price: 340 },
+            { name: "復活", price: 270 },
+            { name: "岩漿", price: 280 },
+            { name: "地震", price: 300 },
+            { name: "人佛", price: 320 },
+            { name: "愛情", price: 330 },
+            { name: "線線", price: 340 },
+            { name: "聲音", price: 360 },
+            { name: "門門", price: 380 },
+            { name: "鳳凰", price: 380 },
+            { name: "響雷", price: 400 },
+            { name: "爪子", price: 410 },
+            { name: "雪雪", price: 420 },
+            { name: "重力", price: 440 },
+            { name: "猛瑪", price: 440 },
+            { name: "暴龍", price: 440 },
+            { name: "麵糰", price: 450 },
+            { name: "影子", price: 460 },
+            { name: "毒液", price: 470 },
+            { name: "控制", price: 480 },
+            { name: "瓦斯", price: 490 },
+            { name: "靈魂", price: 500 },
+            { name: "獵豹", price: 600 },
+            { name: "雪怪", price: 600 },
+            { name: "九尾", price: 800 },
+            { name: "龍龍", price: 1000 },
+            // 通行證
+            { name: "雙倍掉落物", price: 90 },
+            { name: "快船", price: 90 },
+            { name: "雙倍金錢", price: 110 },
+            { name: "雙倍精通", price: 110 },
+            { name: "黑刀", price: 250 },
+            { name: "果探", price: 550 },
+            // 果倉
+            { name: "果倉 x1", price: 100 },
+            { name: "果倉 x3", price: 270 },
+            { name: "果倉 x5", price: 430 },
+            { name: "果倉 x10", price: 850 }
+          ],
+          "Rivals 競爭者": [
+            { name: "皮膚箱 Skin Case 1 x1", price: 70 },
+            { name: "皮膚箱 Skin Case 2 x1", price: 70 },
+            { name: "皮膚箱 Skin Case 3 x1", price: 70 },
+            // 通行證組合包
+            { name: "RPG 組合包", price: 60 },
+            { name: "能源組合包 (1299R)", price: 280 },
+            { name: "外星組合包 (649R)", price: 160 },
+            { name: "醫療組合包 (249R)", price: 80 },
+            { name: "重型組合包 (1899R)", price: 410 },
+            { name: "經典組合包 (1149R)", price: 260 },
+            { name: "普通武器組合包 (999R)", price: 220 },
+            { name: "像素組合包 (888R)", price: 200 },
+            { name: "初學者組合包 (49R)", price: 40 },
+            { name: "超級鑰匙組合包 (2199R)", price: 500 },
+            { name: "傳奇鑰匙組合包 (4999R)", price: 1000 }
+          ],
+          "Grow a Garden": [
+            { name: "蜻蜓", price: 150 },
+            { name: "蜂女王", price: 150 },
+            { name: "蝴蝶", price: 200 },
+            { name: "浣熊", price: 200 },
+            { name: "迪斯可蜜蜂", price: 200 },
+            { name: "章魚", price: 150 },
+            { name: "EXOTIC SUMMER SEED PACK*3", price: 150 },
+            { name: "EXOTIC SUMMER SEED PACK*10", price: 350 },
+            { name: "PREMIUM OAISIS EGG*3", price: 100 },
+            { name: "PREMIUM OAISIS EGG*10", price: 280 }
+          ]
+        },
+        "遊戲贈禮服務（自訂金額）": "custom"
+      },
+    },
+    discord: {
+      subcats: ["𝖭𝗂𝗍𝗋𝗈 代購", "伺服器加成"],
+      items: {
+        "𝖭𝗂𝗍𝗋𝗈 代購": [
+          { name: "Discord Nitro 1個月", price: 230 },
+          { name: "Discord Nitro 1年", price: 2500 }
+        ],
+        "伺服器加成": [
+          { name: "伺服器增強 1個月 14次加成", price: 250 }
+        ]
+      }
+    },
+    social: {
+      subcats: ["YouTube", "TikTok", "Instagram", "Facebook"],
+      items: {
+        "YouTube": [
+          { name: "YouTube 頻道訂閱 1000", price: 400 },
+          { name: "YouTube 觀看次數 10000", price: 350 }
+        ],
+        "TikTok": [
+          { name: "TikTok 粉絲 1000", price: 400 },
+          { name: "TikTok 觀看 10000", price: 350 }
+        ],
+        "Instagram": [
+          { name: "Instagram 粉絲 1000", price: 400 },
+          { name: "Instagram 互動 1000", price: 350 }
+        ],
+        "Facebook": [
+          { name: "Facebook 粉絲 1000", price: 400 },
+          { name: "Facebook 互動 1000", price: 350 }
+        ]
+      }
+    }
+  };
+
+  // DOM 物件
+  const categorySel = document.getElementById("category");
+  const subcategorySel = document.getElementById("subcategory");
+  const step2Div = document.getElementById("step2");
+
+  const step3Div = document.getElementById("step3");
+  const tier3Sel = document.getElementById("tier3");
+
+  const step4Div = document.getElementById("step4");
+  const tier4Sel = document.getElementById("tier4");
+  const customAmountDiv = document.getElementById("customAmountDiv");
+  const customAmountInput = document.getElementById("customAmount");
+  const customPriceSpan = document.getElementById("customPrice");
+  const step4Label = document.getElementById("step4Label");
+
+  const addToCartBtn = document.getElementById("addToCart");
+  const cartSection = document.getElementById("cartSection");
+  const cartBody = document.getElementById("cartBody");
+  const totalPriceTh = document.getElementById("totalPrice");
+  const checkoutBtn = document.getElementById("checkoutBtn");
+
+  const checkoutSection = document.getElementById("checkoutSection");
+  const paymentMethodSel = document.getElementById("paymentMethod");
+  const paymentInfoDiv = document.getElementById("paymentInfo");
+  const sendOrderBtn = document.getElementById("sendOrder");
+
+  // 狀態
+  let selectedCategory = "";
+  let selectedSubcategory = "";
+  let selectedTier3 = "";
+  let selectedTier4 = "";
+  let customAmount = 0;
+
+  let cart = [];
+
+  // 隨機訂單代碼產生器
+  function generateOrderCode(length = 10) {
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let code = "";
+    for (let i = 0; i < length; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  }
+
+  // 初始化子分類
+  function updateSubcategories() {
+    selectedCategory = categorySel.value;
+    clearStep(2);
+    clearStep(3);
+    clearStep(4);
+    addToCartBtn.disabled = true;
+
+    if (!selectedCategory) {
+      step2Div.classList.add("hidden");
+      step3Div.classList.add("hidden");
+      step4Div.classList.add("hidden");
+      return;
+    }
+    step2Div.classList.remove("hidden");
+    // 填入子分類
+    subcategorySel.innerHTML = '<option value="">請選擇商品類別</option>';
+    const subs = products[selectedCategory].subcats;
+    subs.forEach(s => {
+      subcategorySel.insertAdjacentHTML("beforeend", `<option value="${s}">${s}</option>`);
+    });
+  }
+
+  // 第3步判斷與更新
+  function updateTier3() {
+    selectedSubcategory = subcategorySel.value;
+    clearStep(3);
+    clearStep(4);
+    addToCartBtn.disabled = true;
+
+    if (!selectedSubcategory) {
+      step3Div.classList.add("hidden");
+      step4Div.classList.add("hidden");
+      return;
+    }
+
+    // 特殊判斷：Roblox代購需要多層次選擇
+    if (selectedCategory === "roblox" && selectedSubcategory === "代購") {
+      step3Div.classList.remove("hidden");
+      tier3Sel.innerHTML = '<option value="">請選擇代購分類</option>';
+      const subsubs = products.roblox.items["代購"].subsubs;
+      subsubs.forEach(s => {
+        tier3Sel.insertAdjacentHTML("beforeend", `<option value="${s}">${s}</option>`);
+      });
+    } else {
+      // 普通商品，直接第4步出現商品清單
+      step3Div.classList.add("hidden");
+      updateTier4();
+    }
+  }
+
+  // 第4步判斷與更新
+  function updateTier4() {
+    if (step3Div.classList.contains("hidden")) {
+      // 沒第3步，直接第4步根據subcat顯示商品
+      selectedTier3 = "";
+      selectedTier4 = "";
+      clearStep(4);
+      addToCartBtn.disabled = true;
+      if (!selectedSubcategory) {
+        step4Div.classList.add("hidden");
+        return;
+      }
+      step4Div.classList.remove("hidden");
+      tier4Sel.classList.remove("hidden");
+      customAmountDiv.classList.add("hidden");
+      step4Label.textContent = "3️⃣ 選擇商品";
+
+      const items = products[selectedCategory].items[selectedSubcategory];
+      if (!items) {
+        step4Div.classList.add("hidden");
+        return;
+      }
+      // 填商品
+      tier4Sel.innerHTML = '<option value="">請選擇商品</option>';
+      items.forEach((item, i) => {
+        tier4Sel.insertAdjacentHTML("beforeend", `<option value="${i}">${item.name} → NT$${item.price}</option>`);
+      });
+      return;
+    }
+
+    // 第3步存在，依照第3步選項顯示
+    selectedTier3 = tier3Sel.value;
+    clearStep(4);
+    addToCartBtn.disabled = true;
+    if (!selectedTier3) {
+      step4Div.classList.add("hidden");
+      return;
+    }
+    step4Div.classList.remove("hidden");
+
+    if (selectedTier3 === "遊戲贈禮服務（自訂金額）") {
+      // 顯示自訂金額輸入框
+      tier4Sel.classList.add("hidden");
+      customAmountDiv.classList.remove("hidden");
+      step4Label.textContent = "4️⃣ 請輸入自訂金額";
+      customAmountInput.value = "";
+      customPriceSpan.textContent = "0";
+      customAmount = 0;
+      addToCartBtn.disabled = true;
+      return;
+    }
+
+    // 非自訂金額，顯示對應商品清單
+    tier4Sel.classList.remove("hidden");
+    customAmountDiv.classList.add("hidden");
+    step4Label.textContent = "4️⃣ 選擇商品";
+
+    const items = products.roblox.items["代購"][selectedTier3];
+    if (!items) {
+      step4Div.classList.add("hidden");
+      return;
+    }
+    tier4Sel.innerHTML = '<option value="">請選擇商品</option>';
+    items.forEach((item, i) => {
+      tier4Sel.insertAdjacentHTML("beforeend", `<option value="${i}">${item.name} → NT$${item.price}</option>`);
+    });
+  }
+
+  // 清理某步驟內容
+  function clearStep(stepNum) {
+    if (stepNum <= 2) {
+      subcategorySel.value = "";
+      step2Div.classList.add("hidden");
+    }
+    if (stepNum <= 3) {
+      tier3Sel.innerHTML = "";
+      tier3Sel.value = "";
+      step3Div.classList.add("hidden");
+    }
+    if (stepNum <= 4) {
+      tier4Sel.innerHTML = "";
+      tier4Sel.value = "";
+      step4Div.classList.add("hidden");
+      customAmountDiv.classList.add("hidden");
+      customAmountInput.value = "";
+      customPriceSpan.textContent = "0";
+    }
+  }
+
+  // 更新加入購物車按鈕狀態
+  function updateAddToCartStatus() {
+    let enable = false;
+    if (step4Div.classList.contains("hidden")) {
+      enable = false;
+    } else {
+      if (selectedTier3 === "遊戲贈禮服務（自訂金額）") {
+        enable = customAmount > 0;
+      } else if (step3Div.classList.contains("hidden")) {
+        enable = tier4Sel.value !== "";
+      } else {
+        enable = tier4Sel.value !== "";
+      }
+    }
+    addToCartBtn.disabled = !enable;
+  }
+
+  // 加入購物車
+  function addToCart() {
+    let itemName = "";
+    let itemPrice = 0;
+
+    if (selectedCategory === "" || selectedSubcategory === "") return;
+
+    if (!step3Div.classList.contains("hidden")) {
+      if (selectedTier3 === "遊戲贈禮服務（自訂金額）") {
+        if (customAmount <= 0) return;
+        itemName = `ROBLOX 遊戲贈禮服務（自訂金額） R:${customAmount}`;
+        itemPrice = Math.round(customAmount * 0.18);
+      } else {
+        if (tier4Sel.value === "") return;
+        const item = products.roblox.items["代購"][selectedTier3][parseInt(tier4Sel.value)];
+        itemName = item.name;
+        itemPrice = item.price;
+      }
+    } else {
+      if (tier4Sel.value === "") return;
+      const item = products[selectedCategory].items[selectedSubcategory][parseInt(tier4Sel.value)];
+      itemName = item.name;
+      itemPrice = item.price;
+    }
+
+    cart.push({ name: itemName, price: itemPrice });
+    alert(`已加入購物車: ${itemName}，價格 NT$${itemPrice}`);
+    renderCart();
+
+    // 重置選擇
+    clearStep(3);
+    clearStep(4);
+    addToCartBtn.disabled = true;
+  }
+
+  // 顯示購物車內容
+  function renderCart() {
+    if (cart.length === 0) {
+      cartSection.classList.add("hidden");
+      checkoutSection.classList.add("hidden");
+      return;
+    }
+    cartSection.classList.remove("hidden");
+    checkoutSection.classList.add("hidden");
+    cartBody.innerHTML = "";
+    let total = 0;
+    cart.forEach((item, idx) => {
+      total += item.price;
+      cartBody.insertAdjacentHTML(
+        "beforeend",
+        `<tr>
+          <td>${item.name}</td>
+          <td>NT$${item.price}</td>
+          <td><button data-idx="${idx}" class="removeBtn">刪除</button></td>
+        </tr>`
+      );
+    });
+    totalPriceTh.textContent = `NT$${total}`;
+  }
+
+  // 刪除購物車商品
+  cartBody.addEventListener("click", (e) => {
+    if (e.target.classList.contains("removeBtn")) {
+      const idx = parseInt(e.target.getAttribute("data-idx"));
+      if (!isNaN(idx)) {
+        cart.splice(idx, 1);
+        renderCart();
+      }
+    }
+  });
+
+  // 點結帳顯示付款選項
+  checkoutBtn.addEventListener("click", () => {
+    if (cart.length === 0) {
+      alert("購物車是空的！");
+      return;
+    }
+    checkoutSection.classList.remove("hidden");
+    cartSection.classList.add("hidden");
+    paymentMethodSel.value = "";
+    paymentInfoDiv.textContent = "";
+    sendOrderBtn.disabled = true;
+  });
+
+  // 付款方式選擇改變
+  paymentMethodSel.addEventListener("change", () => {
+    const val = paymentMethodSel.value;
+    sendOrderBtn.disabled = val === "";
+    paymentInfoDiv.innerHTML = "";
+
+    if (val === "8591" || val === "convenience") {
+      const orderCode = generateOrderCode();
+      paymentInfoDiv.innerHTML = `
+        <p>請至此 <a href="https://discord.gg/jt4ZvhnCDQ" target="_blank">Discord 群組</a> 或找金佐陳 (FB) 下單，附上訂單代碼即可(盡量於 Discord 下單)</p>
+        <p>FB: <a href="https://www.facebook.com/jin.zuo.chen.2025" target="_blank">https://www.facebook.com/jin.zuo.chen.2025</a></p>
+        <p>Discord: <a href="https://discord.gg/jt4ZvhnCDQ" target="_blank">https://discord.gg/jt4ZvhnCDQ</a></p>
+        <p><strong>訂單代碼：${orderCode}</strong></p>
+      `;
+      sendOrderBtn.dataset.orderCode = orderCode;
+    } else if (val === "chinatrust") {
+      const orderCode = generateOrderCode();
+      paymentInfoDiv.innerHTML = `
+        <p>帳號：<strong>325540828773</strong></p>
+        <p>繳費完成請到 FB 或 Discord 取貨並附上訂單號碼和發票證明：</p>
+        <p>FB: <a href="https://www.facebook.com/jin.zuo.chen.2025" target="_blank">https://www.facebook.com/jin.zuo.chen.2025</a></p>
+        <p>Discord: <a href="https://discord.gg/jt4ZvhnCDQ" target="_blank">https://discord.gg/jt4ZvhnCDQ</a></p>
+        <p><strong>訂單代碼：${orderCode}</strong></p>
+      `;
+      sendOrderBtn.dataset.orderCode = orderCode;
+    } else {
+      sendOrderBtn.dataset.orderCode = "";
+    }
+  });
+
+  // 送出訂單並用Discord Webhook通知
+  sendOrderBtn.addEventListener("click", () => {
+    const orderCode = sendOrderBtn.dataset.orderCode || generateOrderCode();
+    const paymentMethod = paymentMethodSel.value;
+
+    if (cart.length === 0) {
+      alert("購物車是空的！");
+      return;
+    }
+    if (!paymentMethod) {
+      alert("請選擇付款方式");
+      return;
+    }
+
+    let total = 0;
+    let orderDesc = "";
+    cart.forEach((item, idx) => {
+      orderDesc += `${idx + 1}. ${item.name} - NT$${item.price}\n`;
+      total += item.price;
+    });
+    orderDesc += `\n總價: NT$${total}\n付款方式: ${paymentMethod}\n訂單代碼: ${orderCode}`;
+
+    // 發送Webhook (只支持fetch的環境)
+    
+const name = document.getElementById("customerName").value.trim();
+const email = document.getElementById("customerEmail").value.trim();
+const agreed = document.getElementById("agreeTerms").checked;
+if (!name || !email) {
+  alert("請輸入姓名與電子郵件！");
+  return;
+}
+if (!agreed) {
+  alert("請勾選同意服務條款！");
+  return;
+}
+fetch(webhookURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content: `🛍️ 新訂單通知\n👤 姓名：${name}\n📧 Email：${email}\n${orderDesc}`
+      })
+    }).then(res => {
+      if (res.ok) {
+        alert("訂單已送出，感謝您的購買！");
+        // 重置整個頁面
+        cart = [];
+        renderCart();
+        checkoutSection.classList.add("hidden");
+        step2Div.classList.add("hidden");
+        step3Div.classList.add("hidden");
+        step4Div.classList.add("hidden");
+        addToCartBtn.disabled = true;
+        categorySel.value = "";
+        subcategorySel.innerHTML = "";
+        tier3Sel.innerHTML = "";
+        tier4Sel.innerHTML = "";
+        paymentMethodSel.value = "";
+        paymentInfoDiv.textContent = "";
+      } else {
+        alert("訂單送出失敗，請稍後再試。");
+      }
+    }).catch(() => {
+      alert("訂單送出失敗，請檢查網路連線。");
+    });
+  });
+
+  // 監聽選擇變化更新下一步
+  categorySel.addEventListener("change", () => {
+    updateSubcategories();
+    addToCartBtn.disabled = true;
+  });
+
+  subcategorySel.addEventListener("change", () => {
+    updateTier3();
+    addToCartBtn.disabled = true;
+  });
+
+  tier3Sel.addEventListener("change", () => {
+    updateTier4();
+    addToCartBtn.disabled = true;
+  });
+
+  tier4Sel.addEventListener("change", () => {
+    selectedTier4 = tier4Sel.value;
+    updateAddToCartStatus();
+  });
+
+  customAmountInput.addEventListener("input", () => {
+    const val = parseInt(customAmountInput.value);
+    if (!isNaN(val) && val > 0) {
+      customAmount = val;
+      customPriceSpan.textContent = Math.round(val * 0.18);
+    } else {
+      customAmount = 0;
+      customPriceSpan.textContent = "0";
+    }
+    updateAddToCartStatus();
+  });
+
+  addToCartBtn.addEventListener("click", addToCart);
+  // 初始化畫面
+  updateSubcategories();
+
+})();
+</script>
+</body>
+</html>
