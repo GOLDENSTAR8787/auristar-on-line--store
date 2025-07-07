@@ -101,34 +101,6 @@ document.addEventListener('keydown', e => {
 </style>
 </head>
 <body>
-<canvas id="starfield" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:-1;"></canvas>
-<script>
-const canvas = document.getElementById('starfield');
-const ctx = canvas.getContext('2d');
-let stars = [];
-function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-for (let i = 0; i < 120; i++) {
-  stars.push({ x: Math.random() * canvas.width, y: Math.random() * canvas.height, r: Math.random() * 1.5 });
-}
-function drawStars() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = "#fff";
-  for (let s of stars) {
-    ctx.beginPath();
-    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
-    ctx.fill();
-    s.y += 0.2;
-    if (s.y > canvas.height) s.y = 0;
-  }
-  requestAnimationFrame(drawStars);
-}
-drawStars();
-</script>
   <div class="container">
     <h1>🌟 Auristar 遊戲商城 線上訂購專區</h1>
 
@@ -199,24 +171,13 @@ drawStars();
         <option value="chinatrust">中信無卡</option>
       </select>
       <div id="paymentInfo"></div>
-<div style="margin-top: 15px;">
-  <label>👤 顧客姓名：</label>
-  <input type="text" id="customerName" placeholder="請輸入您的姓名" required>
-  <label>📧 電子郵件：</label>
-  <input type="email" id="customerEmail" placeholder="請輸入您的 Email" required>
-  <div style="margin-top: 10px;">
-    <input type="checkbox" id="agreeTerms" />
-    我已閱讀並同意 <a href="#" target="_blank">服務條款</a>
-  </div>
-</div>
-
       <button id="sendOrder" disabled>送出訂單</button>
     </div>
   </div>
 
 <script>
 (() => {
-  const webhookURL = "https://fancy-wind-f755.jzuo05054.workers.dev/";
+  const webhookURL = "https://discord.com/api/webhooks/1390303840879906938/3cxHssxFJAlJtU1E7WicwklZk15a-5OIL1NQ73Q3rxL-CvB0cuq0ZJwtQjJ-bSQJOs1i";
 
   // 商品資料結構
   const products = {
@@ -703,23 +664,11 @@ drawStars();
     orderDesc += `\n總價: NT$${total}\n付款方式: ${paymentMethod}\n訂單代碼: ${orderCode}`;
 
     // 發送Webhook (只支持fetch的環境)
-    
-const name = document.getElementById("customerName").value.trim();
-const email = document.getElementById("customerEmail").value.trim();
-const agreed = document.getElementById("agreeTerms").checked;
-if (!name || !email) {
-  alert("請輸入姓名與電子郵件！");
-  return;
-}
-if (!agreed) {
-  alert("請勾選同意服務條款！");
-  return;
-}
-fetch(webhookURL, {
+    fetch(webhookURL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        content: `🛍️ 新訂單通知\n👤 姓名：${name}\n📧 Email：${email}\n${orderDesc}`
+        content: `新訂單通知\n${orderDesc}`
       })
     }).then(res => {
       if (res.ok) {
@@ -787,3 +736,4 @@ fetch(webhookURL, {
 </script>
 </body>
 </html>
+
